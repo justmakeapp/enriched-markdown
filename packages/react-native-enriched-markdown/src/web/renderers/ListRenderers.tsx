@@ -25,7 +25,16 @@ function ListRenderer({
     : hasTaskChild
       ? styles.listTask
       : styles.list;
-  return <ListTag style={resolvedStyle}>{renderChildren(node)}</ListTag>;
+  // Host apps commonly reset `list-style` globally (e.g. Tailwind/NativeWind
+  // preflight sets `ul, ol { list-style: none }`), which silently drops the
+  // bullet/number marker on web only — native renderers are unaffected. The
+  // shared `listStyle()` builder in styles.ts doesn't know ul vs ol, so pin
+  // the marker type explicitly here where the tag is known.
+  const styleWithMarker = {
+    ...resolvedStyle,
+    listStyleType: ListTag === 'ol' ? 'decimal' : 'disc',
+  };
+  return <ListTag style={styleWithMarker}>{renderChildren(node)}</ListTag>;
 }
 
 function UnorderedListRenderer(props: RendererProps) {
