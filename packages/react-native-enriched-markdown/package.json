@@ -2,10 +2,10 @@
   "name": "react-native-enriched-markdown",
   "version": "1.0.2",
   "description": "Markdown-based Rich Text solution for React Native",
-  "main": "./lib/module/index",
-  "module": "./lib/module/index",
+  "main": "./src/index",
+  "module": "./src/index",
   "source": "./src/index.tsx",
-  "types": "./lib/typescript/src/index.d.ts",
+  "types": "./src/depictify.d.ts",
   "files": [
     "src",
     "lib",
@@ -49,8 +49,7 @@
     "vendor-grammars": "node ../../vendor/vendor-grammars.mjs",
     "vendor-ratex": "node ../../vendor/vendor-ratex.mjs",
     "prepack": "bash ../../scripts/prepare-npm-publish.sh prepack",
-    "postpack": "bash ../../scripts/prepare-npm-publish.sh postpack",
-    "prepare": "yarn vendor-grammars && yarn vendor-ratex && bob build"
+    "postpack": "bash ../../scripts/prepare-npm-publish.sh postpack"
   },
   "keywords": [
     "react-native",
@@ -164,7 +163,7 @@
         }
       }
     },
-    "includesGeneratedCode": true
+    "includesGeneratedCode": false
   },
   "create-react-native-library": {
     "type": "fabric-view",

@@ -155,7 +155,8 @@ static NSArray<NSArray<TableCellData *> *> *ENRMTableBuildRows(MarkdownASTNode *
 }
 
 static void ENRMTableComputeLayout(NSArray<NSArray<TableCellData *> *> *rows, NSUInteger colCount, StyleConfig *config,
-                                   CGFloat borderWidth, NSMutableArray<NSNumber *> *_Nullable *_Nullable outColWidths,
+                                   CGFloat borderWidth, CGFloat maxWidth,
+                                   NSMutableArray<NSNumber *> *_Nullable *_Nullable outColWidths,
                                    NSMutableArray<NSNumber *> *_Nullable *_Nullable outRowHeights,
                                    CGFloat *_Nullable outTotalWidth, CGFloat *_Nullable outTotalHeight)
 {
@@ -181,6 +182,16 @@ static void ENRMTableComputeLayout(NSArray<NSArray<TableCellData *> *> *rows, NS
         colWidths[column] = @(width);
     }
   }
+
+#if !TARGET_OS_OSX
+  CGFloat naturalWidth = [[colWidths valueForKeyPath:@"@sum.self"] doubleValue] + borderWidth;
+  if (maxWidth > borderWidth && naturalWidth > maxWidth) {
+    CGFloat scale = (maxWidth - borderWidth) / (naturalWidth - borderWidth);
+    for (NSUInteger column = 0; column < colWidths.count; column++) {
+      colWidths[column] = @([colWidths[column] doubleValue] * scale);
+    }
+  }
+#endif
 
   NSMutableArray<NSNumber *> *rowHeights = [NSMutableArray arrayWithCapacity:rows.count];
   for (NSArray<TableCellData *> *row in rows) {
@@ -249,10 +260,11 @@ static void ENRMTableComputeLayout(NSArray<NSArray<TableCellData *> *> *rows, NS
 {
   _scrollView = [[RCTUIScrollView alloc] init];
   _scrollView.showsVerticalScrollIndicator = NO;
-  _scrollView.showsHorizontalScrollIndicator = YES;
+  _scrollView.showsHorizontalScrollIndicator = NO;
 #if !TARGET_OS_OSX
   _scrollView.bounces = YES;
   _scrollView.alwaysBounceHorizontal = NO;
+  _scrollView.scrollEnabled = NO;
   _scrollView.isAccessibilityElement = NO;
   _scrollView.accessibilityElementsHidden = YES;
 #endif
@@ -335,8 +347,8 @@ static void ENRMTableComputeLayout(NSArray<NSArray<TableCellData *> *> *rows, NS
   NSMutableArray<NSNumber *> *rowHeights = nil;
   CGFloat totalWidth = 0;
   CGFloat totalHeight = 0;
-  ENRMTableComputeLayout(_rows, _colCount, self.config, self.config.tableBorderWidth, &colWidths, &rowHeights,
-                         &totalWidth, &totalHeight);
+  ENRMTableComputeLayout(_rows, _colCount, self.config, self.config.tableBorderWidth, CGFLOAT_MAX, &colWidths,
+                         &rowHeights, &totalWidth, &totalHeight);
   _colWidths = colWidths;
   _rowHeights = rowHeights;
   _totalTableWidth = totalWidth;
@@ -345,6 +357,7 @@ static void ENRMTableComputeLayout(NSArray<NSArray<TableCellData *> *> *rows, NS
 
 + (CGFloat)measureHeightForTableNode:(MarkdownASTNode *)tableNode
                               config:(StyleConfig *)config
+                            maxWidth:(CGFloat)maxWidth
                     allowFontScaling:(BOOL)allowFontScaling
                maxFontSizeMultiplier:(CGFloat)maxFontSizeMultiplier
                 writingDirectionMode:(ENRMWritingDirectionMode)writingDirectionMode
@@ -358,7 +371,7 @@ static void ENRMTableComputeLayout(NSArray<NSArray<TableCellData *> *> *rows, NS
     return 0;
 
   CGFloat totalHeight = 0;
-  ENRMTableComputeLayout(rows, colCount, config, config.tableBorderWidth, NULL, NULL, NULL, &totalHeight);
+  ENRMTableComputeLayout(rows, colCount, config, config.tableBorderWidth, maxWidth, NULL, NULL, NULL, &totalHeight);
   return totalHeight;
 }
 
@@ -603,8 +616,14 @@ static void ENRMTableComputeLayout(NSArray<NSArray<TableCellData *> *> *rows, NS
 {
   if (_rows.count == 0)
     return 0;
-  if (_rowHeights.count == 0)
-    [self computeLayout];
+  NSMutableArray<NSNumber *> *colWidths = nil;
+  NSMutableArray<NSNumber *> *rowHeights = nil;
+  ENRMTableComputeLayout(_rows, _colCount, self.config, self.config.tableBorderWidth, maxWidth, &colWidths, &rowHeights,
+                         &_totalTableWidth, &_totalTableHeight);
+  _colWidths = colWidths;
+  _rowHeights = rowHeights;
+  _cachedAccessibilityElements = nil;
+  [self renderGrid];
   return _totalTableHeight;
 }
 
@@ -636,14 +655,14 @@ static void ENRMTableComputeLayout(NSArray<NSArray<TableCellData *> *> *rows, NS
       _scrollView.contentOffset = CGPointMake(-overhang, 0);
     }
     _scrollView.contentSize = CGSizeMake(_totalTableWidth, _totalTableHeight);
-    _scrollView.scrollEnabled = YES;
+    _scrollView.scrollEnabled = NO;
     _gridContainer.frame = CGRectMake(0, 0, _totalTableWidth, _totalTableHeight);
   } else {
     CGFloat alignOffset = [self alignOffsetForFreeSpace:containerWidth - overhang * 2 - _totalTableWidth];
     _scrollView.contentInset = UIEdgeInsetsZero;
     _scrollView.contentOffset = CGPointZero;
     _scrollView.contentSize = CGSizeMake(MAX(_totalTableWidth, containerWidth), _totalTableHeight);
-    _scrollView.scrollEnabled = (_totalTableWidth > containerWidth);
+    _scrollView.scrollEnabled = NO;
     _gridContainer.frame = CGRectMake(overhang + alignOffset, 0, _totalTableWidth, _totalTableHeight);
   }
 #else

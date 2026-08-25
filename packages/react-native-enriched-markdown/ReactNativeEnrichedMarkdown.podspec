@@ -2,13 +2,10 @@ require "json"
 
 package = JSON.parse(File.read(File.join(__dir__, "package.json")))
 
-monorepo = File.exist?(File.expand_path("../core/EnrichedMarkdownCore.podspec", __dir__))
-cpp_root = monorepo ? "$(PODS_TARGET_SRCROOT)/../core/cpp" : "$(PODS_TARGET_SRCROOT)/cpp"
+cpp_root = "$(PODS_TARGET_SRCROOT)/cpp"
 
 require File.join(__dir__, "cpp/highlight/code_highlight_podspec.rb")
-# In the monorepo the C++ (including tree-sitter highlighting) compiles in the
-# EnrichedMarkdownCore pod; only the published, core-less build compiles it here.
-code_highlight = monorepo ? EnrichedMarkdownCodeHighlight.disabled : EnrichedMarkdownCodeHighlight.config(__dir__)
+code_highlight = EnrichedMarkdownCodeHighlight.config(__dir__)
 
 Pod::Spec.new do |s|
   s.name         = "ReactNativeEnrichedMarkdown"
@@ -21,15 +18,9 @@ Pod::Spec.new do |s|
   s.platforms    = { :ios => min_ios_version_supported, :osx => '14.0' }
   s.source       = { :git => "https://github.com/software-mansion/enriched-markdown.git", :tag => "#{s.version}" }
 
-  if monorepo
-    s.private_header_files = "ios/**/*.h"
-    s.source_files = "ios/**/*.{h,m,mm,cpp,swift}"
-    s.dependency "EnrichedMarkdownCore"
-  else
-    s.private_header_files = "ios/**/*.h", "cpp/**/*.{h,hpp}"
-    s.source_files = ["ios/**/*.{h,m,mm,cpp,swift}", "cpp/md4c/*.{c,h}", "cpp/parser/*.{hpp,cpp}", "cpp/highlight/*.{hpp,cpp}"] + code_highlight[:source_files]
-    s.preserve_paths = "cpp/highlight/vendor/**/*" if code_highlight[:enabled]
-  end
+  s.private_header_files = "ios/**/*.h", "cpp/**/*.{h,hpp}"
+  s.source_files = ["ios/**/*.{h,m,mm,cpp,swift}", "cpp/md4c/*.{c,h}", "cpp/parser/*.{hpp,cpp}", "cpp/highlight/*.{hpp,cpp}"] + code_highlight[:source_files]
+  s.preserve_paths = "cpp/highlight/vendor/**/*" if code_highlight[:enabled]
 
   # LaTeX math rendering (RaTeX, iOS only). RaTeX ships as a prebuilt static XCFramework
   # vendored under ios/vendor (restored by vendor/vendor-ratex.mjs at postinstall); it

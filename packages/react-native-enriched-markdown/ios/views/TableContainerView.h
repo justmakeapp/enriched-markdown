@@ -23,10 +23,11 @@ typedef void (^TableLinkPressBlock)(NSString *url);
 /// runs in `applyTableNode:`/`computeLayout` — shared statics, so measured and
 /// rendered heights cannot drift — without creating any view. Safe on any
 /// thread; the iOS counterpart of Android's
-/// `TableContainerView.measureTableNodeHeight`. Table height is intrinsic
-/// (content-sized columns, horizontal scroll), so no maxWidth parameter.
+/// `TableContainerView.measureTableNodeHeight`. Columns are constrained to
+/// maxWidth on iOS so tables wrap rather than scroll horizontally.
 + (CGFloat)measureHeightForTableNode:(MarkdownASTNode *)tableNode
                               config:(StyleConfig *)config
+                            maxWidth:(CGFloat)maxWidth
                     allowFontScaling:(BOOL)allowFontScaling
                maxFontSizeMultiplier:(CGFloat)maxFontSizeMultiplier
                 writingDirectionMode:(ENRMWritingDirectionMode)writingDirectionMode
