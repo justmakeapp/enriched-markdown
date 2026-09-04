@@ -70,20 +70,6 @@ if (consumerConfig.containsKey("enableMath")) {
     enableMath = true
 }
 
-// Default grammar set derived from the single source of truth,
-// vendor/grammar-versions.json (every grammar with default:true), so the compiled
-// grammars always match the registry gen-registry generates from the same
-// manifest. Resolved in both layouts like gen-registry.mjs below:
-// "../../../vendor" in the monorepo, "../cpp/highlight" when published.
-def grammarManifest = [
-  new File(projectDir, "../../../vendor/grammar-versions.json"),
-  new File(projectDir, "../cpp/highlight/grammar-versions.json"),
-].find { it.exists() }
-if (grammarManifest == null) {
-  throw new GradleException("[code-highlight] grammar-versions.json not found; cannot resolve the default language set. Build from the monorepo or a published tarball.")
-}
-def defaultCodeHighlightLanguages = new groovy.json.JsonSlurper().parse(grammarManifest)
-  .grammars.findAll { id, spec -> spec['default'] }.collect { id, spec -> id }
 // Code highlight enable: package.json > gradle property (deprecated) > default on.
 // `codeHighlightExplicit` tracks an active opt-in (vs the implicit default), which
 // decides the missing-grammars behavior below.
@@ -141,8 +127,20 @@ if (consumerConfig.get("codeHighlightLanguages") instanceof List) {
     logger.warn("[ReactNativeEnrichedMarkdown] DEPRECATED: enrichedMarkdown.codeHighlightLanguages gradle property " +
         "will be removed in a future version. Configure via \"enriched-markdown\".codeHighlightLanguages in your package.json instead.")
     codeHighlightLanguages = codeHighlightLanguagesProp.toString().split(",").collect { it.trim() }.findAll { it }
+} else if (enableCodeHighlight) {
+    // Resolve the default grammar set only when code highlighting is enabled.
+    // A consumer that disables it has no need for this optional native asset.
+    def grammarManifest = [
+      new File(projectDir, "../../../vendor/grammar-versions.json"),
+      new File(projectDir, "../cpp/highlight/grammar-versions.json"),
+    ].find { it.exists() }
+    if (grammarManifest == null) {
+      throw new GradleException("[code-highlight] grammar-versions.json not found; cannot resolve the default language set. Build from the monorepo or a published tarball.")
+    }
+    codeHighlightLanguages = new groovy.json.JsonSlurper().parse(grammarManifest)
+      .grammars.findAll { id, spec -> spec['default'] }.collect { id, spec -> id }
 } else {
-    codeHighlightLanguages = defaultCodeHighlightLanguages
+    codeHighlightLanguages = []
 }
 def codeHighlightActive = enableCodeHighlight && !codeHighlightLanguages.isEmpty()
 

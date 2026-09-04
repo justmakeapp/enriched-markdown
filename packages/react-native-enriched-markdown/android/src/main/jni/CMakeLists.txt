@@ -5,7 +5,7 @@ set(LIB_LITERAL EnrichedMarkdownTextSpec)
 set(LIB_TARGET_NAME react_codegen_${LIB_LITERAL})
 
 set(LIB_ANDROID_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../..)
-set(LIB_ANDROID_GENERATED_JNI_DIR ${LIB_ANDROID_DIR}/generated/jni)
+set(LIB_ANDROID_GENERATED_JNI_DIR ${LIB_ANDROID_DIR}/build/generated/source/codegen/jni)
 set(LIB_ANDROID_GENERATED_COMPONENTS_DIR ${LIB_ANDROID_GENERATED_JNI_DIR}/react/renderer/components/${LIB_LITERAL})
 
 # cpp/ is a symlink to packages/core/cpp in the monorepo; published tarballs
@@ -48,6 +48,10 @@ set_target_properties(md4c_lib PROPERTIES
 
 file(GLOB LIB_CODEGEN_SRCS CONFIGURE_DEPENDS ${LIB_ANDROID_GENERATED_JNI_DIR}/*.cpp ${LIB_ANDROID_GENERATED_COMPONENTS_DIR}/*.cpp)
 file(GLOB LIB_CUSTOM_JNI_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/react/renderer/components/${LIB_LITERAL}/*.cpp)
+# React Native codegen now emits the module provider in
+# EnrichedMarkdownTextSpec-generated.cpp. Keep the package's legacy copy out
+# of the target so it cannot define the same symbol twice.
+list(REMOVE_ITEM LIB_CUSTOM_JNI_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/EnrichedMarkdownTextSpec.cpp)
 
 add_library(
   ${LIB_TARGET_NAME}
