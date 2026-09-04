@@ -24,6 +24,7 @@ import com.swmansion.enriched.markdown.accessibility.AccessibilityLabels
 import com.swmansion.enriched.markdown.parser.MarkdownASTNode
 import com.swmansion.enriched.markdown.parser.MarkdownASTNode.NodeType
 import com.swmansion.enriched.markdown.renderer.Renderer
+import com.swmansion.enriched.markdown.spans.ImageSpan
 import com.swmansion.enriched.markdown.styles.StyleConfig
 import com.swmansion.enriched.markdown.styles.TableStyle
 import com.swmansion.enriched.markdown.utils.common.layout.isLayoutRTL
@@ -293,6 +294,10 @@ class TableContainerView(
           true
         }
       }
+    // Table cells own separate TextViews; registration supplies each image span's width and async redraw target.
+    data.attributedText
+      .getSpans(0, data.attributedText.length, ImageSpan::class.java)
+      .forEach { it.registerTextView(cellTextView) }
     val horizontalPadding = tableStyle.cellPaddingHorizontal
     val verticalPadding = tableStyle.cellPaddingVertical
     container.addView(
