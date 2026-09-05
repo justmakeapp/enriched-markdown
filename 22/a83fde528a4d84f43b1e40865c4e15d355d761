@@ -1,0 +1,26 @@
+packages/react-native-enriched-markdown/android/src/main/java/com/swmansion/enriched/markdown/spans/ImageSpan.kt
+  s_58dea191e19b16::t_cbdd062eabacbb 307-317
+  s_58dea191e19b16::t_8fd3d979159cd3 277-282
+  s_58dea191e19b16::t_c24571897ec11a 293-298
+  s_58dea191e19b16::t_19373b811bcb99 103-116
+  s_58dea191e19b16::t_dce8b10e56ca76 99,101-102,117
+packages/react-native-enriched-markdown/android/src/main/java/com/swmansion/enriched/markdown/spans/LineHeightSpan.kt
+  s_58dea191e19b16::t_1d9ceb65ce9905 4,23,29-48
+  s_58dea191e19b16::t_7fbab7306d6cc1 49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.2",
+  "base_commit_sha": "22a83fde528a4d84f43b1e40865c4e15d355d761",
+  "prompts": {},
+  "sessions": {
+    "s_58dea191e19b16": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f394240b-1e27-4e8f-a99b-356428ad4d11",
+        "model": "claude-opus-5"
+      },
+      "human_author": null
+    }
+  }
+}
