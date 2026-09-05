@@ -96,9 +96,25 @@ class ImageSpan(
     text: Spanned,
     widthPx: Int,
   ) {
-    if (!dynamicBoxHeight || widthPx <= 0) return
+    if (isInline || widthPx <= 0) return
     val available = availableWidthIn(text, widthPx)
-    if (available > 0) boxHeight = resolveBoxHeight(available)
+    if (available <= 0) return
+    // A block image fills the content width, so its anchor always claims a line
+    // of its own. Measurement renders its own span set with no TextView attached,
+    // and a local image resolves synchronously in init() — so the drawable is
+    // built while cachedWidth is still 0. Adopt the measured width here and
+    // rebuild, otherwise getSize() keeps reporting the stale zero-width box and
+    // the anchor shares a line with the text that follows it in the same
+    // paragraph, making the measured height one line shorter per image than the
+    // layout the view eventually draws.
+    if (cachedWidth != available) {
+      cachedWidth = available
+      if (sourceDrawable != null) {
+        wrapAndAssignDrawable()
+        return
+      }
+    }
+    if (dynamicBoxHeight) boxHeight = resolveBoxHeight(available)
   }
 
   init {
@@ -258,7 +274,12 @@ class ImageSpan(
     start: Int,
     end: Int,
     fm: Paint.FontMetricsInt?,
-  ): Int = getDrawable().bounds.right
+  ): Int {
+    // A block image occupies the whole content width, so the line it claims must
+    // not depend on whether its drawable has been (re)built at the current width.
+    if (!isInline && cachedWidth > 0) return cachedWidth
+    return getDrawable().bounds.right
+  }
 
   override fun chooseHeight(
     text: CharSequence?,
@@ -269,12 +290,29 @@ class ImageSpan(
     fm: Paint.FontMetricsInt?,
   ) {
     if (fm == null || isInline) return
+    // StaticLayout runs every LineHeightSpan of the enclosing '\n'-delimited
+    // paragraph on *every* line of that paragraph. A block image sharing its
+    // paragraph with text (`![img](url)` followed by a soft break, which renders
+    // as a space) must only size the line its anchor sits on — inflating the
+    // text lines too would push their baselines out of the drawn line box.
+    if (!containsAnchor(text, start, end)) return
     val currentLineHeight = fm.descent - fm.ascent
     if (boxHeight > currentLineHeight) {
       val extraHeight = boxHeight - currentLineHeight
       fm.descent += extraHeight
       fm.bottom += extraHeight
     }
+  }
+
+  private fun containsAnchor(
+    text: CharSequence?,
+    start: Int,
+    end: Int,
+  ): Boolean {
+    val spanned = text as? Spanned ?: return true
+    val spanStart = spanned.getSpanStart(this)
+    if (spanStart < 0) return true
+    return spanStart in start until maxOf(end, start + 1)
   }
 
   override fun draw(
